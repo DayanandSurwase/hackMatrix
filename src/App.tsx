@@ -2,8 +2,11 @@ import { RouterProvider, Routes, useNavigate } from './lib/router';
 import { CaseProvider } from './lib/context/CaseContext';
 import { AppShell } from './components/layout/AppShell';
 import { ToastProvider, Icon, Button } from './components/ui';
+import { AIAssistant } from './components/ui/AIAssistant';
 import { SignInCard } from './components/ui/sign-in-card';
 import { Dashboard } from './pages/Dashboard';
+import { Settings } from './pages/Settings';
+import { Onboarding } from './pages/Onboarding';
 import { NewAssessment, Upload, Processing, ExtractionReview } from './pages/Assessment';
 import { SchemeResults } from './pages/SchemeResults';
 import { SchemeDetail } from './pages/SchemeDetail';
@@ -28,6 +31,7 @@ function Shell404() {
 
 const SHELL_ROUTES = [
   { path: '/dashboard', element: <Dashboard /> },
+  { path: '/settings', element: <Settings /> },
   { path: '/assessment/new', element: <NewAssessment /> },
   { path: '/assessment/:id/upload', element: <Upload /> },
   { path: '/assessment/:id/processing', element: <Processing /> },
@@ -52,9 +56,13 @@ export default function App() {
       <ToastProvider>
         <CaseProvider>
           <Routes
-            routes={[{ path: '/', element: <SignInCard /> }]}
+            routes={[
+              { path: '/', element: <SignInCard /> },
+              { path: '/onboarding', element: <Onboarding /> },
+            ]}
             fallback={<AuthedApp />}
           />
+          <AIAssistant />
         </CaseProvider>
       </ToastProvider>
     </RouterProvider>

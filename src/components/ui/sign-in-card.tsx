@@ -50,7 +50,7 @@ export function SignInCard() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      navigate('/dashboard');
+      navigate('/onboarding');
     }, 1400);
   };
 

@@ -21,6 +21,8 @@ export function Dashboard() {
 
   if (loading || !activeCase) return <DashboardSkeleton />;
 
+  const userState = sessionStorage.getItem('user_state');
+
   const evals = activeCase.evaluations;
   const count = (d: Decision) => evals.filter((e) => e.decision === d).length;
   const eligible = count('ELIGIBLE');
@@ -82,8 +84,11 @@ export function Dashboard() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-black">
             <Icon name="shield" size={13} /> Verified government schemes
           </span>
-          <h1 className="mt-4 max-w-2xl text-black">Find government schemes you're eligible for</h1>
+          <h1 className="mt-4 max-w-2xl text-black">
+            {userState ? `Find government schemes in ${userState}` : "Find government schemes you're eligible for"}
+          </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-black/80">
+            {userState ? `Showing schemes localized to ${userState} alongside national benefits. ` : ""}
             Upload your documents once. We match you against verified scheme rules and explain every decision with full evidence — no guesswork.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { Mail, Lock, Eye, EyeClosed, ArrowRight, X } from 'lucide-react';
+import { Mail, Lock, Eye, EyeClosed, ArrowRight, X, User } from 'lucide-react';
 import { Link, useNavigate } from '../../lib/router';
 import { cx } from './index';
 
@@ -56,6 +56,7 @@ export function SignInCard() {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const images = ['/images/hero1.jpeg', '/images/hero2.jpeg'];
 
   useEffect(() => {
@@ -92,10 +93,10 @@ export function SignInCard() {
           <h2 className="text-xl font-bold tracking-tight text-white drop-shadow-md">SchemeGuide</h2>
         </Link>
         <div className="flex items-center gap-4">
-          <button onClick={() => setIsModalOpen(true)} className="text-sm font-semibold text-white drop-shadow-md transition hover:text-emerald-300">
+          <button onClick={() => { setAuthMode('signin'); setIsModalOpen(true); }} className="text-sm font-semibold text-white drop-shadow-md transition hover:text-emerald-300">
             Sign in
           </button>
-          <button onClick={() => setIsModalOpen(true)} className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400">
+          <button onClick={() => { setAuthMode('signup'); setIsModalOpen(true); }} className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-400">
             Sign up
           </button>
         </div>
@@ -245,7 +246,7 @@ export function SignInCard() {
                   transition={{ delay: 0.2 }}
                   className="bg-gradient-to-b from-white to-white/80 bg-clip-text text-xl font-bold text-transparent"
                 >
-                  Welcome Back
+                  {authMode === 'signin' ? 'Welcome Back' : 'Create Account'}
                 </motion.h1>
 
                 <motion.p
@@ -254,13 +255,52 @@ export function SignInCard() {
                   transition={{ delay: 0.3 }}
                   className="text-xs text-white/60"
                 >
-                  Sign in to continue to SchemeGuide
+                  {authMode === 'signin' ? 'Sign in to continue to SchemeGuide' : 'Join SchemeGuide to discover benefits'}
                 </motion.p>
               </div>
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-3">
+                  <AnimatePresence>
+                    {authMode === 'signup' && (
+                      <motion.div
+                        className={cx('relative', focusedInput === 'name' ? 'z-10' : '')}
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                      >
+                        <div className="relative flex items-center overflow-hidden rounded-lg">
+                          <User
+                            className={cx(
+                              'absolute left-3 h-4 w-4 transition-all duration-300',
+                              focusedInput === 'name' ? 'text-white' : 'text-white/40',
+                            )}
+                          />
+                          <Input
+                            type="text"
+                            placeholder="Full Name"
+                            onFocus={() => setFocusedInput('name')}
+                            onBlur={() => setFocusedInput(null)}
+                            className="w-full border-transparent bg-white/5 pl-10 pr-3 text-white transition-all duration-300 placeholder:text-white/30 focus-visible:border-white/20 focus-visible:bg-white/10 focus-visible:ring-white/10"
+                            required
+                          />
+                          {focusedInput === 'name' && (
+                            <motion.div
+                              layoutId="input-highlight"
+                              className="absolute inset-0 -z-10 bg-white/5"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {/* Email */}
                   <motion.div
                     className={cx('relative', focusedInput === 'email' ? 'z-10' : '')}
@@ -421,7 +461,7 @@ export function SignInCard() {
                           exit={{ opacity: 0 }}
                           className="flex items-center gap-1 text-sm font-medium"
                         >
-                          Sign In
+                          {authMode === 'signin' ? 'Sign In' : 'Sign Up'}
                           <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover/button:translate-x-1" />
                         </motion.span>
                       )}
@@ -458,7 +498,7 @@ export function SignInCard() {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
                     <span className="text-xs text-white/80 transition-colors duration-300 group-hover/google:text-white">
-                      Sign in with Google
+                      {authMode === 'signin' ? 'Sign in with Google' : 'Sign up with Google'}
                     </span>
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0"
@@ -469,20 +509,20 @@ export function SignInCard() {
                   </div>
                 </motion.button>
 
-                {/* Sign up */}
+                {/* Sign up toggle */}
                 <motion.p
                   className="mt-4 text-center text-xs text-white/60"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  Don't have an account?{' '}
-                  <Link to="/dashboard" className="group/signup relative inline-block">
+                  {authMode === 'signin' ? "Don't have an account? " : "Already have an account? "}
+                  <button type="button" onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')} className="group/signup relative inline-block">
                     <span className="relative z-10 font-medium text-white transition-colors duration-300 group-hover/signup:text-white/70">
-                      Sign up
+                      {authMode === 'signin' ? 'Sign up' : 'Sign in'}
                     </span>
                     <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-white transition-all duration-300 group-hover/signup:w-full" />
-                  </Link>
+                  </button>
                 </motion.p>
               </form>
             </div>

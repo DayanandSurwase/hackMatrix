@@ -51,7 +51,9 @@ export function Upload() {
   const { id = CASE } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { setUploadedFiles } = useCase();
   const [drag, setDrag] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [rows, setRows] = useState<UploadRow[]>([
     { id: '1', name: 'aadhaar_front.pdf', size: '410 KB', type: 'Aadhaar card', state: 'ready' },
     { id: '2', name: 'project_report.pdf', size: '1.2 MB', type: 'Project report', state: 'ready' },
@@ -59,9 +61,10 @@ export function Upload() {
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = (files: FileList | null) => {
-    if (!files) return;
-    const next: UploadRow[] = Array.from(files).map((f, i) => {
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    const incoming = Array.from(list);
+    const next: UploadRow[] = incoming.map((f, i) => {
       const ok = /\.(pdf|png|jpe?g)$/i.test(f.name);
       return {
         id: Date.now() + '-' + i,
@@ -71,6 +74,10 @@ export function Upload() {
         state: ok ? 'ready' : 'unsupported',
       };
     });
+    const accepted = incoming.filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name));
+    const merged = [...files, ...accepted];
+    setFiles(merged);
+    setUploadedFiles(merged);
     setRows((r) => [...r, ...next]);
     if (next.some((n) => n.state === 'unsupported')) toast({ tone: 'error', msg: 'Some files were rejected — only PDF and images are supported.' });
     else toast({ tone: 'success', msg: `${next.length} file(s) added.` });
@@ -133,8 +140,16 @@ export function Upload() {
 export function Processing() {
   const { id = CASE } = useParams();
   const navigate = useNavigate();
+  const { uploadedFiles, runExtraction, loading } = useCase();
   const [job, setJob] = useState<ProcessingJob>(() => makeJob(id));
   const [failed, setFailed] = useState(false);
+  const started = useRef(false);
+
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    runExtraction(uploadedFiles).catch(() => setFailed(true));
+  }, [runExtraction, uploadedFiles]);
 
   useEffect(() => {
     if (job.status === 'COMPLETED' || failed) return;
@@ -185,14 +200,14 @@ export function Processing() {
 
         {failed ? (
           <div className="mt-6">
-            <Alert tone="error" title="A document could not be processed" action={<Button size="sm" variant="secondary" onClick={() => { setFailed(false); setJob(makeJob(id)); }}>Retry</Button>}>
+            <Alert tone="error" title="A document could not be processed" action={<Button size="sm" variant="secondary" onClick={() => { setFailed(false); started.current = false; setJob(makeJob(id)); runExtraction(uploadedFiles).catch(() => setFailed(true)); }}>Retry</Button>}>
               OCR could not read one scanned page reliably. You can retry, or continue — affected facts will be flagged as low confidence.
             </Alert>
           </div>
         ) : (
           <div className="mt-6 flex items-center justify-between">
             <button onClick={() => setFailed(true)} className="text-xs text-faint underline hover:text-muted">Simulate a processing failure</button>
-            <Button disabled={!done} onClick={() => navigate(`/assessment/${id}/extraction`)}>
+            <Button disabled={!done || loading} onClick={() => navigate(`/assessment/${id}/extraction`)}>
               Review extracted facts <Icon name="arrow" size={16} />
             </Button>
           </div>
@@ -207,15 +222,16 @@ const GROUP_LABELS: Record<string, string> = { identity: 'Identity & demographic
 
 export function ExtractionReview() {
   const { id = CASE } = useParams();
-  const { activeCase, updateFact } = useCase();
+  const { activeCase, updateFact, runEvaluation } = useCase();
   const navigate = useNavigate();
   const toast = useToast();
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [evaluating, setEvaluating] = useState(false);
 
   if (!activeCase) return null;
   const groups = ['identity', 'economic', 'business', 'evidence'] as const;
-  const lowConf = activeCase.facts.filter((f) => f.confidence < 0.7).length;
+  const lowConf = activeCase.facts.filter((f) => f.confidence < 0.8).length;
 
   return (
     <div className="fp-fade-in">
@@ -280,7 +296,17 @@ export function ExtractionReview() {
 
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm text-muted">Confirm these facts to run the deterministic rule engine.</p>
-        <Button onClick={() => navigate(`/assessment/${id}/schemes`)}>Confirm & find schemes <Icon name="arrow" size={16} /></Button>
+        <Button disabled={evaluating} onClick={async () => {
+          setEvaluating(true);
+          try {
+            await runEvaluation();
+            navigate(`/assessment/${id}/schemes`);
+          } catch {
+            toast({ tone: 'error', msg: 'Eligibility evaluation failed. Check that the API is running.' });
+          } finally {
+            setEvaluating(false);
+          }
+        }}>Confirm & find schemes <Icon name="arrow" size={16} /></Button>
       </div>
     </div>
   );
